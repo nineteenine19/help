@@ -1,6 +1,15 @@
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
+type TaskListItem = {
+    id: string;
+    title: string;
+    category: string | null;
+    reward_cents: number;
+    status: string;
+    created_at: string;
+};
+
 function labelStatus(s: string) {
     switch (s) {
         case "open":
@@ -41,6 +50,7 @@ export default async function TasksPage({
     if (category) q = q.ilike("category", `%${category}%`);
 
     const { data, error } = await q;
+    const tasks = (data ?? []) as TaskListItem[];
 
     return (
         <div className="mx-auto w-full max-w-5xl px-4 py-8">
@@ -93,7 +103,7 @@ export default async function TasksPage({
             ) : null}
 
             <ul className="mt-6 space-y-3">
-                {(data ?? []).map((t: any) => (
+                {tasks.map((t) => (
                     <li key={t.id} className="rounded-md border bg-white p-4">
                         <div className="flex items-start justify-between gap-4">
                             <div className="min-w-0">

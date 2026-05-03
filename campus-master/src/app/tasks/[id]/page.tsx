@@ -11,6 +11,25 @@ import { submitReviewAction } from "@/app/actions/reviewActions";
 import EvidenceUploader from "@/components/EvidenceUploader";
 import TaskChat from "@/components/TaskChat";
 
+type ProfileRole = {
+    role: string;
+};
+
+type MessageRow = {
+    id: string;
+    sender_id: string;
+    body: string;
+    created_at: string;
+};
+
+type ReviewRow = {
+    reviewer_id: string;
+    reviewee_id: string;
+    stars: number;
+    comment: string | null;
+    created_at: string;
+};
+
 function labelStatus(s: string) {
     switch (s) {
         case "open":
@@ -48,7 +67,7 @@ export default async function TaskDetailPage({
             .select("role")
             .eq("id", user.id)
             .maybeSingle()
-        : { data: null as any };
+        : { data: null as ProfileRole | null };
 
     const { data: task, error } = await supabase
         .from("tasks")
@@ -99,12 +118,7 @@ export default async function TaskDetailPage({
     const canChat = Boolean(user && task.helper_id && (isRequester || isHelper));
 
     let conversationId: string | null = null;
-    let initialMessages: Array<{
-        id: string;
-        sender_id: string;
-        body: string;
-        created_at: string;
-    }> = [];
+    let initialMessages: MessageRow[] = [];
 
     if (canChat) {
         const { data: existingConv } = await supabase
@@ -133,7 +147,7 @@ export default async function TaskDetailPage({
                 .limit(50);
 
             if (Array.isArray(msgs)) {
-                initialMessages = msgs as any;
+                initialMessages = msgs as MessageRow[];
             }
         }
     }
@@ -156,9 +170,10 @@ export default async function TaskDetailPage({
         .select("reviewer_id,reviewee_id,stars,comment,created_at")
         .eq("task_id", id)
         .order("created_at", { ascending: false });
+    const reviewRows = (reviews ?? []) as ReviewRow[];
 
     const hasReviewed = Boolean(
-        user?.id && (reviews ?? []).some((r: any) => r.reviewer_id === user.id),
+        user?.id && reviewRows.some((r) => r.reviewer_id === user.id),
     );
 
     const myRevieweeId = isRequester
@@ -224,6 +239,7 @@ export default async function TaskDetailPage({
                                     rel="noreferrer"
                                     className="block"
                                 >
+                                    {/* eslint-disable-next-line @next/next/no-img-element -- Supabase signed URLs are short-lived and should render directly. */}
                                     <img
                                         src={url}
                                         alt={`evidence-${idx + 1}`}
@@ -393,11 +409,11 @@ export default async function TaskDetailPage({
                         <p className="mt-4 text-sm text-zinc-700">你已提交评价。</p>
                     )}
 
-                    {(reviews ?? []).length ? (
+                    {reviewRows.length ? (
                         <div className="mt-6">
                             <div className="text-sm font-medium">已提交的评价</div>
                             <ul className="mt-2 space-y-2 text-sm text-zinc-700">
-                                {(reviews ?? []).map((r: any, idx: number) => (
+                                {reviewRows.map((r, idx) => (
                                     <li key={idx} className="rounded-md border p-3">
                                         <div>星级：{r.stars}</div>
                                         {r.comment ? <div>评语：{r.comment}</div> : null}

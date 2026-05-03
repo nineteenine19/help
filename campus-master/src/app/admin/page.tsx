@@ -2,6 +2,27 @@ import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { adminResolveDisputeAction } from "@/app/actions/taskActions";
 
+type TaskSummary = {
+    id: string;
+    title: string;
+    status: string;
+    reward_cents: number;
+    created_at: string;
+};
+
+type HighRiskAudit = {
+    task_id: string;
+    risk_level: string;
+    reason: string | null;
+    updated_at: string;
+};
+
+type DisputeSummary = {
+    task_id: string;
+    reason: string | null;
+    created_at: string;
+};
+
 export default async function AdminPage() {
     const supabase = await createSupabaseServerClient();
     const {
@@ -37,16 +58,18 @@ export default async function AdminPage() {
         .order("updated_at", { ascending: false })
         .limit(50);
 
-    const highRiskTaskIds = (highRisk ?? []).map((r: any) => r.task_id);
+    const highRiskRows = (highRisk ?? []) as HighRiskAudit[];
+    const highRiskTaskIds = highRiskRows.map((r) => r.task_id);
     const { data: highRiskTasks } = highRiskTaskIds.length
         ? await supabase
             .from("tasks")
             .select("id,title,reward_cents,status,created_at")
             .in("id", highRiskTaskIds)
-        : { data: [] as any[] };
+        : { data: [] as TaskSummary[] };
 
+    const highRiskTaskRows = (highRiskTasks ?? []) as TaskSummary[];
     const highRiskTaskMap = new Map(
-        (highRiskTasks ?? []).map((t: any) => [t.id, t]),
+        highRiskTaskRows.map((t) => [t.id, t]),
     );
 
     const { data: disputes } = await supabase
@@ -55,9 +78,11 @@ export default async function AdminPage() {
         .order("created_at", { ascending: false })
         .limit(50);
 
+    const disputeRows = (disputes ?? []) as DisputeSummary[];
     const disputeMap = new Map(
-        (disputes ?? []).map((d: any) => [d.task_id, d]),
+        disputeRows.map((d) => [d.task_id, d]),
     );
+    const taskRows = (tasks ?? []) as TaskSummary[];
 
     return (
         <div className="mx-auto w-full max-w-5xl px-4 py-8">
@@ -67,7 +92,7 @@ export default async function AdminPage() {
             </p>
 
             <ul className="mt-6 space-y-3">
-                {(tasks ?? []).map((t: any) => (
+                {taskRows.map((t) => (
                     <li key={t.id} className="rounded-md border bg-white p-4">
                         <div className="flex items-start justify-between gap-4">
                             <div className="min-w-0">
@@ -113,7 +138,7 @@ export default async function AdminPage() {
                 AI 审核仅做辅助，不直接封禁；建议结合人工复核。
             </p>
             <ul className="mt-4 space-y-3">
-                {(highRisk ?? []).map((r: any) => {
+                {highRiskRows.map((r) => {
                     const t = highRiskTaskMap.get(r.task_id);
                     return (
                         <li key={r.task_id} className="rounded-md border bg-white p-4">

@@ -52,7 +52,7 @@ export async function createTaskAction(
         const flattened = parsed.error.flatten();
         return {
             formError: "请检查表单输入",
-            fieldErrors: flattened.fieldErrors as any,
+            fieldErrors: flattened.fieldErrors,
         };
     }
 
@@ -65,10 +65,10 @@ export async function createTaskAction(
     });
 
     if (error) {
-        const msg = String((error as any).message || "创建失败");
-        const details = String((error as any).details || "");
-        const hint = String((error as any).hint || "");
-        const code = String((error as any).code || "");
+        const msg = String(error.message || "创建失败");
+        const details = String(error.details || "");
+        const hint = String(error.hint || "");
+        const code = String(error.code || "");
 
         if (msg.toLowerCase().includes("insufficient balance")) {
             return { formError: "余额不足，无法发布该报酬的任务。", fieldErrors: {} };

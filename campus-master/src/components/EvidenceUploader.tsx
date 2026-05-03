@@ -69,8 +69,8 @@ export default function EvidenceUploader({
             }
 
             setPaths((prev) => [...prev, ...newPaths].slice(0, MAX_FILES));
-        } catch (e: any) {
-            setError(e?.message ?? "上传失败");
+        } catch (e: unknown) {
+            setError(e instanceof Error ? e.message : "上传失败");
         } finally {
             setBusy(false);
         }

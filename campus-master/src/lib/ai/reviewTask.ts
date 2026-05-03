@@ -12,12 +12,46 @@ export type AiAuditResult = {
     raw?: unknown;
 };
 
-function safeJsonParse(text: string): any | null {
+function safeJsonParse(text: string): unknown | null {
     try {
         return JSON.parse(text);
     } catch {
         return null;
     }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === "object" && value !== null;
+}
+
+function readPath(value: unknown, path: Array<string | number>): unknown {
+    let current = value;
+    for (const key of path) {
+        if (typeof key === "number") {
+            if (!Array.isArray(current)) return undefined;
+            current = current[key];
+            continue;
+        }
+
+        if (!isRecord(current)) return undefined;
+        current = current[key];
+    }
+    return current;
+}
+
+function toAiResult(value: unknown): Pick<AiAuditResult, "riskLevel" | "reason"> | null {
+    if (!isRecord(value)) return null;
+
+    const riskLevel = value.riskLevel;
+    const reason = value.reason;
+    if (
+        (riskLevel === "low" || riskLevel === "medium" || riskLevel === "high") &&
+        typeof reason === "string"
+    ) {
+        return { riskLevel, reason };
+    }
+
+    return null;
 }
 
 export async function reviewTaskTextWithAI(input: {
@@ -70,17 +104,18 @@ export async function reviewTaskTextWithAI(input: {
         });
 
         if (r.ok) {
-            const json = await r.json();
+            const json: unknown = await r.json();
             const text =
-                json?.output?.[0]?.content?.[0]?.text ??
-                json?.output_text ??
-                json?.output?.text;
+                readPath(json, ["output", 0, "content", 0, "text"]) ??
+                readPath(json, ["output_text"]) ??
+                readPath(json, ["output", "text"]);
 
             const parsed = typeof text === "string" ? safeJsonParse(text) : null;
-            if (parsed?.riskLevel && parsed?.reason) {
+            const result = toAiResult(parsed);
+            if (result) {
                 return {
-                    riskLevel: parsed.riskLevel,
-                    reason: String(parsed.reason),
+                    riskLevel: result.riskLevel,
+                    reason: result.reason,
                     raw: json,
                 };
             }
@@ -111,14 +146,15 @@ export async function reviewTaskTextWithAI(input: {
             body: JSON.stringify(chatBody),
         });
 
-        const json = await r.json();
-        const text = json?.choices?.[0]?.message?.content;
+        const json: unknown = await r.json();
+        const text = readPath(json, ["choices", 0, "message", "content"]);
         const parsed = typeof text === "string" ? safeJsonParse(text) : null;
+        const result = toAiResult(parsed);
 
-        if (r.ok && parsed?.riskLevel && parsed?.reason) {
+        if (r.ok && result) {
             return {
-                riskLevel: parsed.riskLevel,
-                reason: String(parsed.reason),
+                riskLevel: result.riskLevel,
+                reason: result.reason,
                 raw: json,
             };
         }
@@ -128,10 +164,10 @@ export async function reviewTaskTextWithAI(input: {
             reason: "AI 返回格式无法解析（Chat Completions）。",
             raw: json,
         };
-    } catch (e: any) {
+    } catch (e: unknown) {
         return {
             riskLevel: "error",
-            reason: `AI 请求失败：${e?.message ?? "unknown"}`,
+            reason: `AI 请求失败：${e instanceof Error ? e.message : "unknown"}`,
         };
     }
 }

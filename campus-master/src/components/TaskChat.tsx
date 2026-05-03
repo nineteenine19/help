@@ -16,17 +16,13 @@ export default function TaskChat(props: {
     currentUserId: string;
     initialMessages: MessageRow[];
 }) {
-    const { taskId, conversationId, currentUserId, initialMessages } = props;
+    const { conversationId, currentUserId, initialMessages } = props;
     const supabase = useMemo(() => createSupabaseBrowserClient(), []);
 
     const [messages, setMessages] = useState<MessageRow[]>(initialMessages ?? []);
     const [text, setText] = useState("");
     const [error, setError] = useState<string | null>(null);
     const [sending, setSending] = useState(false);
-
-    useEffect(() => {
-        setMessages(initialMessages ?? []);
-    }, [taskId, initialMessages]);
 
     useEffect(() => {
         const channel = supabase
@@ -40,7 +36,7 @@ export default function TaskChat(props: {
                     filter: `conversation_id=eq.${conversationId}`,
                 },
                 (payload) => {
-                    const m = payload.new as any;
+                    const m = payload.new as Partial<MessageRow>;
                     const next: MessageRow = {
                         id: String(m.id),
                         sender_id: String(m.sender_id),
@@ -95,8 +91,8 @@ export default function TaskChat(props: {
             }
 
             setText("");
-        } catch (err: any) {
-            setError(err?.message ? String(err.message) : "发送失败");
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : "发送失败");
         } finally {
             setSending(false);
         }

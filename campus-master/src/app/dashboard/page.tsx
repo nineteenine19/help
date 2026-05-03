@@ -3,6 +3,14 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { topUpAction } from "@/app/actions/taskActions";
 import { updateRoleAction } from "@/app/actions/profileActions";
 
+type TaskListItem = {
+    id: string;
+    title: string;
+    status: string;
+    reward_cents: number;
+    created_at: string;
+};
+
 export default async function DashboardPage() {
     const supabase = await createSupabaseServerClient();
     const {
@@ -34,6 +42,9 @@ export default async function DashboardPage() {
         .eq("helper_id", user!.id)
         .order("created_at", { ascending: false })
         .limit(10);
+
+    const requesterTasks = (myRequester ?? []) as TaskListItem[];
+    const helperTasks = (myHelper ?? []) as TaskListItem[];
 
     return (
         <div className="mx-auto w-full max-w-5xl px-4 py-8">
@@ -127,7 +138,7 @@ export default async function DashboardPage() {
                         </Link>
                     </div>
                     <ul className="mt-3 space-y-2">
-                        {(myRequester ?? []).map((t: any) => (
+                        {requesterTasks.map((t) => (
                             <li key={t.id} className="rounded-md border bg-white p-3">
                                 <Link href={`/tasks/${t.id}`} className="font-medium">
                                     {t.title}
@@ -148,7 +159,7 @@ export default async function DashboardPage() {
                         </Link>
                     </div>
                     <ul className="mt-3 space-y-2">
-                        {(myHelper ?? []).map((t: any) => (
+                        {helperTasks.map((t) => (
                             <li key={t.id} className="rounded-md border bg-white p-3">
                                 <Link href={`/tasks/${t.id}`} className="font-medium">
                                     {t.title}

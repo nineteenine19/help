@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 type NotificationRow = {
@@ -20,7 +21,7 @@ export default function RealtimeNotifications() {
 
     useEffect(() => {
         let cancelled = false;
-        let channel: any = null;
+        let channel: RealtimeChannel | null = null;
 
         (async () => {
             const {
@@ -47,16 +48,16 @@ export default function RealtimeNotifications() {
                         filter: `user_id=eq.${user.id}`,
                     },
                     (payload) => {
-                        const n = payload.new as any;
+                        const n = payload.new as Partial<NotificationRow>;
                         setItems((prev) =>
                             [{
-                                id: n.id,
-                                type: n.type,
-                                title: n.title,
-                                body: n.body,
-                                reference_id: n.reference_id,
-                                created_at: n.created_at,
-                                is_read: n.is_read,
+                                id: String(n.id ?? ""),
+                                type: String(n.type ?? ""),
+                                title: String(n.title ?? ""),
+                                body: n.body == null ? null : String(n.body),
+                                reference_id: n.reference_id == null ? null : String(n.reference_id),
+                                created_at: String(n.created_at ?? ""),
+                                is_read: Boolean(n.is_read),
                             }, ...prev].slice(0, 5),
                         );
                     },
