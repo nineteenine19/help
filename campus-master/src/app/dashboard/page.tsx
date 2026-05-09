@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { topUpAction } from "@/app/actions/taskActions";
 import { updateRoleAction } from "@/app/actions/profileActions";
@@ -17,29 +18,33 @@ export default async function DashboardPage() {
         data: { user },
     } = await supabase.auth.getUser();
 
+    if (!user) {
+        redirect("/auth?next=/dashboard");
+    }
+
     const { data: profile } = await supabase
         .from("profiles")
         .select("display_name,role,credit_score")
-        .eq("id", user!.id)
+        .eq("id", user.id)
         .maybeSingle();
 
     const { data: account } = await supabase
         .from("accounts")
         .select("available_cents,frozen_cents")
-        .eq("user_id", user!.id)
+        .eq("user_id", user.id)
         .maybeSingle();
 
     const { data: myRequester } = await supabase
         .from("tasks")
         .select("id,title,status,reward_cents,created_at")
-        .eq("requester_id", user!.id)
+        .eq("requester_id", user.id)
         .order("created_at", { ascending: false })
         .limit(10);
 
     const { data: myHelper } = await supabase
         .from("tasks")
         .select("id,title,status,reward_cents,created_at")
-        .eq("helper_id", user!.id)
+        .eq("helper_id", user.id)
         .order("created_at", { ascending: false })
         .limit(10);
 

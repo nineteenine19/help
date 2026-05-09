@@ -1,6 +1,17 @@
+import { redirect } from "next/navigation";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import NewTaskForm from "./NewTaskForm";
 
-export default function NewTaskPage() {
+export default async function NewTaskPage() {
+    const supabase = await createSupabaseServerClient();
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+        redirect("/auth?next=/tasks/new");
+    }
+
     return (
         <div className="mx-auto w-full max-w-2xl px-4 py-8">
             <h1 className="text-2xl font-semibold">发布任务</h1>

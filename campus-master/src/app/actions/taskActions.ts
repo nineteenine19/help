@@ -57,6 +57,17 @@ export async function createTaskAction(
     }
 
     const supabase = await createSupabaseServerClient();
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+        return {
+            formError: "请先登录后再发布任务。",
+            fieldErrors: {},
+        };
+    }
+
     const { data, error } = await supabase.rpc("create_task", {
         p_title: parsed.data.title,
         p_description: parsed.data.description,
