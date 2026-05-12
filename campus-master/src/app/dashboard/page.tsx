@@ -12,6 +12,12 @@ type TaskListItem = {
     created_at: string;
 };
 
+const roleLabels: Record<string, string> = {
+    requester: "需求方（requester）",
+    helper: "接单方（helper）",
+    admin: "管理员（admin）",
+};
+
 export default async function DashboardPage() {
     const supabase = await createSupabaseServerClient();
     const {
@@ -61,7 +67,9 @@ export default async function DashboardPage() {
                     <div className="mt-2 text-sm text-zinc-700">
                         <div>昵称：{profile?.display_name ?? "未设置"}</div>
                         <div className="flex items-center gap-2">
-                            <span>角色：{profile?.role ?? "未知"}</span>
+                            <span>
+                                角色：{profile?.role ? roleLabels[profile.role] ?? profile.role : "未知"}
+                            </span>
                         </div>
                         <div>信用分：{profile?.credit_score ?? 100}</div>
                     </div>
